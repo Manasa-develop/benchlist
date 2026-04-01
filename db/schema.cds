@@ -23,11 +23,11 @@ entity SkillwiseSplits as select from BenchLists {
   key role,
   key resourceProposalStatus,
   key primarySkills,
-  count(1) as count : Integer,
+  count(1) as count : Integer
   
-// Navigation link (association) to employees
+/* // Navigation link (association) to employees
     association to many BenchLists
-      on BenchLists.primarySkills = $self.primarySkills as to_BenchLists
+      on BenchLists.primarySkills = $self.primarySkills as to_BenchLists */
 
 }
 group by benchStatus,role,resourceProposalStatus,primarySkills;
