@@ -13,15 +13,21 @@ annotate service.SkillwiseSplits with @(
             Value: primarySkills,
         },
         {
-            $Type : 'UI.DataFieldWithNavigationPath',
-            Label : 'Resource Details',
-            Target: 'BenchLists',
-            Value : count,
+            $Type : 'UI.DataField',
+            Value : employeeCount,
+            @UI.Hidden,
         },
-    ],
+   /*      {
+            $Type : 'UI.DataFieldWithNavigationPath',
+            //$Type: 'UI.DataField',
+            Label : 'Count',
+            Target: 'to_benchlists',
+            Value : employeeCount,
+        }, */
+    ]
 );
 
-annotate service.SkillwiseSplits with {
+/* annotate service.SkillwiseSplits with {
     benchStatus            @(
         Common.Label                   : 'Bench Status',
         Common.ValueList               : {
@@ -61,17 +67,7 @@ annotate service.SkillwiseSplits with {
         },
         Common.ValueListWithFixedValues: true,
     );
-    primarySkills          @UI.NavigationParameterMapping: [{
-        LocalProperty : primarySkills,
-        TargetProperty: 'primarySkills'
-    }]
-
-/*    @( Common.SemanticObjectMapping : [{
-       LocalProperty : primarySkills,
-       SemanticObjectProperty : 'primarySkills' // Parameter name in target app
-   }]
-   ) */
-};
+}; */
 
 annotate service.SkillwiseSplits with {
     resourceProposalStatus @Common.Label: 'Resource Proposed'

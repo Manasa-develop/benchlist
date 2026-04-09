@@ -12,11 +12,14 @@ service benchlistSrv {
 service skillwisesplitSrv {
  // @odata.draft.enabled
   @readonly
+  @cds.redirection.target
+  entity BenchListDetails as projection on my.BenchLists;
+  @readonly
   entity SkillwiseSplits as projection on my.SkillwiseSplits;
-  @odata.draft.enabled
+ /*  @odata.draft.enabled
   entity Roles as projection on my.Roles;
   @odata.draft.enabled
   entity BenchStatuses as projection on my.BenchStatuses;
   @odata.draft.enabled
-  entity ResourceProposalStatuses as projection on my.ResourceProposalStatuses;
+  entity ResourceProposalStatuses as projection on my.ResourceProposalStatuses; */
 }

@@ -94,18 +94,18 @@ annotate benchlistSrv.BenchLists with @UI.SelectionFields: [
 annotate skillwisesplitSrv.SkillwiseSplits with @UI.HeaderInfo: { TypeName: 'Skillwise Split', TypeNamePlural: 'Skillwise Splits' };
 annotate skillwisesplitSrv.SkillwiseSplits with {
   primarySkills @title: 'Primary Skills';
-  count @title: 'Count'
+  employeeCount @title: 'Count'
 };
 
 annotate skillwisesplitSrv.SkillwiseSplits with @UI.LineItem: [
  { $Type: 'UI.DataField', Value: primarySkills },
- { $Type: 'UI.DataField', Value: count }
+ { $Type: 'UI.DataField', Value: employeeCount }
 ];
 
 annotate skillwisesplitSrv.SkillwiseSplits with @UI.FieldGroup #Main: {
   $Type: 'UI.FieldGroupType', Data: [
  { $Type: 'UI.DataField', Value: primarySkills },
- { $Type: 'UI.DataField', Value: count }
+ { $Type: 'UI.DataField', Value: employeeCount }
   ]
 };
 
@@ -117,7 +117,9 @@ annotate skillwisesplitSrv.SkillwiseSplits with @UI.Facets: [
   { $Type: 'UI.ReferenceFacet', ID: 'Main', Label: 'General Information', Target: '@UI.FieldGroup#Main' }
 ];
 
-annotate skillwisesplitSrv.Roles with @UI.HeaderInfo: { TypeName: 'Role', TypeNamePlural: 'Roles', Title: { Value: role } };
+
+
+/* annotate skillwisesplitSrv.Roles with @UI.HeaderInfo: { TypeName: 'Role', TypeNamePlural: 'Roles', Title: { Value: role } };
 annotate skillwisesplitSrv.Roles with {
   ID @UI.Hidden @Common.Text: { $value: role, ![@UI.TextArrangement]: #TextOnly }
 };
@@ -198,3 +200,4 @@ annotate skillwisesplitSrv.ResourceProposalStatuses with @UI.SelectionFields: [
   resourceProposalStatus
 ];
 
+ */

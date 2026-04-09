@@ -3,7 +3,6 @@ using from '../annotations';
 
 annotate service.BenchLists with @(
     UI.SelectionFields : [
-        skillwiseSplits_ID,
         dc,
         costCenter,
         platform,
@@ -47,11 +46,6 @@ annotate service.BenchLists with @(
         {
             $Type : 'UI.DataField',
             Value : role,
-        },
-        {
-            $Type : 'UI.DataField',
-            Label : 'Skillwise Split',
-            Value : skillwiseSplits_ID,
         },
         {
             $Type : 'UI.DataField',
