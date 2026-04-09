@@ -32,9 +32,6 @@ entity SkillwiseSplits as
         // Navigation link (association) to BenchLists
         to_benchlists     : Association to many BenchLists
                               on to_benchlists.primarySkills = $self.primarySkills
-                                                  /* and to_benchlists.benchStatus = $self.benchStatus
-                                                     and to_benchlists.role = $self.role
-                                                     and to_benchlists.resourceProposalStatus = $self.resourceProposalStatus */
   }
   group by
     primarySkills,
