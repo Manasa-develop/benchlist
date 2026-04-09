@@ -100,11 +100,6 @@
           "pattern": ":?query:",
           "name": "SkillwiseSplitsList",
           "target": "SkillwiseSplitsList"
-        },
-        {
-          "pattern": "SkillwiseSplits({key}):?query:",
-          "name": "SkillwiseSplitsObjectPage",
-          "target": "SkillwiseSplitsObjectPage"
         }
       ],
       "targets": {
@@ -116,32 +111,34 @@
             "settings": {
               "contextPath": "/SkillwiseSplits",
               "variantManagement": "Page",
-              "navigation": {
-                "SkillwiseSplits": {
-                  "detail": {
-                    "route": "SkillwiseSplitsObjectPage"
-                  }
-                }
-              },
+              "navigation": {},
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
                   "tableSettings": {
                     "type": "ResponsiveTable"
+                  },
+                  "columns": {
+                    "EmployeeCountLink": {
+                      "header": "Count",
+                      "position": {
+                        "anchor": "DataField::primarySkills",
+                        "placement": "After"
+                      },
+                      "template": "benchlist.skillwisesplit.ext.fragment.EmployeeCountLink"
+                    }
                   }
                 }
               }
             }
           }
-        },
-        "SkillwiseSplitsObjectPage": {
-          "type": "Component",
-          "id": "SkillwiseSplitsObjectPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "editableHeaderContent": false,
-              "contextPath": "/SkillwiseSplits"
-            }
+        }
+      }
+    },
+    "extends": {
+      "extensions": {
+        "sap.ui.controllerExtensions": {
+          "c": {
+            "controllerName": "benchlist.skillwisesplit.ext.controller.SkillSummaryListExt"
           }
         }
       }

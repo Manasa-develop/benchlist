@@ -1,5 +1,5 @@
 ID;dc;employeeNumber;name;costCenter;platform;role;primarySkills;availability;pillarLead;benchStatus;resourceProposalStatus;comment;createdAt;createdBy;modifiedAt;modifiedBy
 bd6bafc1-1021-4200-859b-557b5a6bcc6b;KDNI;145825;Gopal Singh;KDNI-SAP-Tech;SAP;Analyst;IBP/SCM;100;Manohar;Yes;No;Available;2021-06-27T14:52:23Z;admin;2021-06-27T14:52:23Z;admin
-df5560f5-389f-4dce-8b44-c21eba9b2def;KDNI;53997;Muzaffar Aly Khan Pathan;KDNI-SAP-Tech;SAP;Director;Leadership;100;Vijay;#N/A;#N/A;Available;2021-06-27T14:52:23Z;admin;2021-06-27T14:52:23Z;admin
-498e5bc3-721d-449f-9ebb-edee0cf05672;KDNI;156304;Vijay Simha K P;KDNI-SAP-Tech;SAP;Director;Leadership;100;;#N/A;#N/A;Available;2021-06-27T14:52:23Z;admin;2021-06-27T14:52:23Z;admin
-c5fcdb2d-5318-4698-b028-3dcfcfdd4001;KDNI;172098;Vishwas Seetharam Kamath;KDNI-SAP-Tech;SAP;Director;Leadership;100;Vijay;#N/A;#N/A;Available;2021-06-27T14:52:23Z;admin;2021-06-27T14:52:23Z;admin
+df5560f5-389f-4dce-8b44-c21eba9b2def;KDNI;53997;Muzaffar Aly Khan Pathan;KDNI-SAP-Tech;SAP;Director;Leadership;100;Vijay;Yes;#N/A;Available;2021-06-27T14:52:23Z;admin;2021-06-27T14:52:23Z;admin
+498e5bc3-721d-449f-9ebb-edee0cf05672;KDNI;156304;Vijay Simha K P;KDNI-SAP-Tech;SAP;Director;Leadership;100;;Yes;#N/A;Available;2021-06-27T14:52:23Z;admin;2021-06-27T14:52:23Z;admin
+c5fcdb2d-5318-4698-b028-3dcfcfdd4001;KDNI;172098;Vishwas Seetharam Kamath;KDNI-SAP-Tech;SAP;Associate Director;Leadership;100;Vijay;#N/A;#N/A;Available;2021-06-27T14:52:23Z;admin;2021-06-27T14:52:23Z;admin
