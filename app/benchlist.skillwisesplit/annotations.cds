@@ -12,6 +12,20 @@ annotate service.SkillwiseSplits with @(
             $Type: 'UI.DataField',
             Value: primarySkills,
         },
+        
+        {
+            $Type: 'UI.DataField',
+            Value: role,
+        },
+        
+        {
+            $Type: 'UI.DataField',
+            Value: benchStatus,
+        },
+        {
+            $Type: 'UI.DataField',
+            Value: resourceProposalStatus,
+        },
         {
             $Type : 'UI.DataField',
             Value : employeeCount,
@@ -27,7 +41,7 @@ annotate service.SkillwiseSplits with @(
     ]
 );
 
-/* annotate service.SkillwiseSplits with {
+annotate service.SkillwiseSplits with {
     benchStatus            @(
         Common.Label                   : 'Bench Status',
         Common.ValueList               : {
@@ -67,7 +81,7 @@ annotate service.SkillwiseSplits with @(
         },
         Common.ValueListWithFixedValues: true,
     );
-}; */
+};
 
 annotate service.SkillwiseSplits with {
     resourceProposalStatus @Common.Label: 'Resource Proposed'

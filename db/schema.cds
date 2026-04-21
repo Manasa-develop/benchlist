@@ -13,15 +13,13 @@ entity BenchLists : cuid, managed {
   platform               : String(20);
   role                   : String(50);
   primarySkills          : String(150);
-  availability           : Integer;
+  availability           : String(4);
   pillarLead             : String(100);
   benchStatus            : String(20);
   resourceProposalStatus : String(10);
   comment                : String(100);
-//skillwiseSplits: Association to SkillwiseSplits;
 }
 
-@cds.persistence.skip
 entity SkillwiseSplits as
   select from BenchLists {
     key primarySkills,
@@ -29,28 +27,24 @@ entity SkillwiseSplits as
     key role,
     key resourceProposalStatus,
         count(1) as employeeCount : Integer,
-        // Navigation link (association) to BenchLists
-        to_benchlists     : Association to many BenchLists
-                              on to_benchlists.primarySkills = $self.primarySkills
   }
   group by
     primarySkills,
     benchStatus,
     role,
     resourceProposalStatus; 
-
-/*  @assert.unique: {role: [role]}
- entity Roles : cuid {
-   role : String(50) @mandatory;
+ define view Roles as select from BenchLists {
+  key role
  }
+group by role;
 
-@assert.unique: {benchStatus: [benchStatus]}
-entity BenchStatuses : cuid {
-  benchStatus : String(20) @mandatory;
-}
+define view BenchStatuses as select from BenchLists {
+  key benchStatus
+ }
+group by benchStatus;
 
-@assert.unique: {resourceProposalStatus: [resourceProposalStatus]}
-entity ResourceProposalStatuses : cuid {
-  resourceProposalStatus : String(10) @mandatory;
-}
- */
+
+define view ResourceProposalStatuses as select from BenchLists {
+  key resourceProposalStatus
+ }
+group by resourceProposalStatus;

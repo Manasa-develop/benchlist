@@ -3,25 +3,244 @@
  * @version(2.0)
  */
 const LCAPApplicationService = require('@sap/low-code-event-handler');
-const after_Skillwisesplits_Read = require('./code/after-skillwisesplits-read');
+const SkillwisesplitSrv = require('./code/SkillwiseSplitSrv');
+
 
 class skillwisesplitSrv extends LCAPApplicationService {
-    async init() {
-     /*    this.on('READ', 'SkillwiseSplits', async (results, request) => {
-            await after_Skillwisesplits_Read(results, request);
-        }); */
+  async init() {
+    
+// Important: ensure base initialization happens first
+    await super.init()
 
-        return super.init();
-    }
+    console.log(' SkillwiseSplitSrv loaded')
+    //  Now `this.entities` is available
+    const { SkillwiseSplits, BenchLists } = this.entities
+
+    this.on('READ', 'SkillwiseSplits', async (req) => {
+
+     const q = req.query;
+      const where = q?.SELECT?.where;
+      const orderBy = q?.SELECT?.orderBy;
+      const limit = q?.SELECT?.limit;
+
+      // --- Detect $count calls (FE often calls /SkillwiseSplits/$count) ---
+      const cols = q?.SELECT?.columns || [];
+      const isCount =
+        cols.length === 1 &&
+        (
+          cols[0].func === 'count' ||
+          cols[0].ref?.[0] === '$count'
+        );
+
+      // --- Base aggregation grouped only by primarySkills ---
+      const baseAgg = SELECT
+        .from(BenchLists)
+        .columns(
+          { ref: ['primarySkills'] },
+          { func: 'count', args: [1], as: 'employeeCount' }
+        )
+        .groupBy('primarySkills');
+
+      // Apply UI filters if present (role/status/etc. are in WHERE)
+      if (where) baseAgg.where(where);
+
+      // If this is a $count request: count number of groups (distinct primarySkills after filters)
+      if (isCount) {
+        const countGroups = SELECT
+          .from(baseAgg) // subquery
+          .columns({ func: 'count', args: [1], as: 'count' });
+
+        const r = await cds.run(countGroups);
+        return r?.[0]?.count ?? 0;
+      }
+
+      // Preserve $orderby if FE sends it (allow sorting by primarySkills or employeeCount)
+      if (orderBy) baseAgg.SELECT.orderBy = orderBy;
+
+      // Preserve paging ($top/$skip)
+      if (limit) baseAgg.SELECT.limit = limit;
+
+      const rows = await cds.run(baseAgg);
+
+      // Because your entity metadata contains role/status fields (for filters),
+      // but we group only by primarySkills, return them as null (or omit).
+      // FE doesn't need them in the row; it only needs them for filtering.
+      return rows.map(r => ({
+        primarySkills: r.primarySkills,
+        employeeCount: r.employeeCount,
+        role: null,
+        benchStatus: null,
+        resourceProposalStatus: null
+      }));
+    });
+
+    return this;
+
+   // return super.init();
+  }
+}
+
+const cds = require("@sap/cds");
+const XLSX = require("xlsx");
+
+// csv-parse compatibility import
+let parseCsv;
+try {
+  ({ parse: parseCsv } = require("csv-parse/sync"));
+} catch (e) {
+  ({ parse: parseCsv } = require("csv-parse/lib/sync"));
 }
 
 class benchlistSrv extends LCAPApplicationService {
-    async init() {
-     return super.init();
-    }
+  async init() {
+     console.log("✅ benchlistSrv init loaded. Service:", this.name);
+    // Access service entities (projection names as exposed in service CDS)
+    const { BenchLists } = this.entities;
+
+    /**
+     * Unbound action handler:
+     * action uploadBenchData(fileName: String, content: LargeBinary) returns Integer;
+     */
+    this.on("uploadBenchData", async (req) => {
+      console.log("✅ uploadBenchData called");
+      try {
+        const { fileName, content } = req.data || {};
+        if (!content) req.reject(400, "No file content received");
+        if (!fileName) req.reject(400, "No fileName received");
+
+        // content is base64 string (no "data:..." prefix)
+        const buf = Buffer.from(content, "base64");
+        const text = buf.toString("utf8");
+
+        // VERY basic CSV parsing (comma-separated, first row headers)
+        // Replace with your own parsing rules if needed.
+        const lines = text.split(/\r?\n/).filter(Boolean);
+        if (lines.length < 2) req.reject(400, "CSV is empty or missing data rows");
+
+        const headers = lines[0].split(",").map((h) => h.trim());
+        const rows = lines.slice(1).map((line) => {
+          const cols = line.split(","); // simplistic
+          const obj = {};
+          headers.forEach((h, i) => (obj[h] = (cols[i] || "").trim()));
+          return obj;
+        });
+
+        // Map CSV columns -> entity columns
+        // IMPORTANT: adjust mapping to match your BenchLists fields.
+        const payload = rows.map((r) => ({
+        ID: r.ID || cds.utils.uuid(),
+        dc: r.dc ?? r.Dc ?? r.DC,
+        employeeNumber: r.employeeNumber ?? r.EmployeeNumber ?? r.EMPLOYEENUMBER,
+        name: r.name ?? r.Name ?? r.NAME,
+        costCenter: r.costCenter ?? r.CostCenter ?? r.COSTCENTER,
+        platform: r.platform ?? r.Platform ?? r.PLATFORM,
+        role: r.role ?? r.Role ?? r.ROLE,
+        primarySkills: r.primarySkills ?? r.PrimarySkills ?? r.PRIMARYSKILLS,
+        availability: r.availability ?? r.Availability ?? r.AVAILABILITY,
+        pillarLead: r.pillarLead ?? r.PillarLead ?? r.PILLARLEAD,
+        benchStatus: r.benchStatus ?? r.BenchStatus ?? r.BENCHSTATUS,
+        resourceProposalStatus:
+          r.resourceProposalStatus ?? r.ResourceProposalStatus ?? r.RESOURCEPROPOSALSTATUS,
+        comment: r.comment ?? r.Comment ?? r.COMMENT
+        })).filter(r => r.dc); // keep only valid rows
+
+        if (!payload.length) req.reject(400, "No valid rows found (missing keys)");
+
+        // UPSERT requires keys present (EmployeeID in this example)
+        await cds.transaction(req).run(
+          UPSERT.into(BenchLists).entries(payload)
+        );
+
+        // CAP action primitive return (Integer)
+        req.info(`${payload.length} records upserted successfully`);
+        return payload.length;
+
+      } catch (e) {
+        req.error(500, e.message || String(e));
+        return req.reject(500, "Upload failed: " + (e.message || e));
+      }
+    });
+ /*      
+      const { fileName, content } = req.data;
+
+      if (!fileName) req.error(400, "fileName is required");
+      if (!content) req.error(400, "content is required");
+
+      // In many FE uploads, content comes as base64 string
+      const buffer = Buffer.isBuffer(content)
+        ? content
+        : Buffer.from(content, "base64");
+
+      const lower = String(fileName).toLowerCase();
+      let rows = [];
+
+      // ---- Parse CSV ----
+      if (lower.endsWith(".csv")) {
+        const csvText = buffer.toString("utf8");
+        try {
+          rows = parseCsv(csvText, {
+            columns: true,           // expects header row
+            skip_empty_lines: true,
+            trim: true
+          });
+        } catch (e) {
+          req.error(400, `CSV parsing failed: ${e.message}`);
+        }
+
+      // ---- Parse XLSX ----
+      } else if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+        try {
+          const wb = XLSX.read(buffer, { type: "buffer" });
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        } catch (e) {
+          req.error(400, `XLSX parsing failed: ${e.message}`);
+        }
+
+      } else {
+        req.error(400, "Unsupported file type. Please upload .csv or .xlsx");
+      }
+
+      if (!rows.length) return 0;
+      const payload = rows.map((r) => ({
+        dc: r.dc ?? r.Dc ?? r.DC,
+        employeeNumber: r.employeeNumber ?? r.EmployeeNumber ?? r.EMPLOYEENUMBER,
+        name: r.name ?? r.Name ?? r.NAME,
+        dc: r.costCenter ?? r.CostCenter ?? r.COSTCENTER,
+        platform: r.platform ?? r.Platform ?? r.PLATFORM,
+        role: r.role ?? r.Role ?? r.ROLE,
+        primarySkills: r.primarySkills ?? r.PrimarySkills ?? r.PRIMARYSKILLS,
+        availability: r.availability ?? r.Availability ?? r.AVAILABILITY,
+        pillarLead: r.pillarLead ?? r.PillarLead ?? r.PILLARLEAD,
+        benchStatus: r.benchStatus ?? r.BenchStatus ?? r.BENCHSTATUS,
+        resourceProposalStatus:
+          r.resourceProposalStatus ?? r.ResourceProposalStatus ?? r.RESOURCEPROPOSALSTATUS,
+        comment: r.comment ?? r.Comment ?? r.COMMENT
+      }));
+
+// ✅ Validate key presence (otherwise UPSERT becomes insert-only / or fails)
+        const missingKey = payload.find(p => !p.employeeId);
+        if (missingKey) req.error(400, "Validation failed: employeeId (key) is mandatory for UPSERT");
+
+        // ✅ UPSERT into DB (HANA Cloud when deployed)
+        const tx = cds.tx(req);
+
+        // For large uploads, chunk to avoid payload limits
+        const CHUNK = 500;
+        for (let i = 0; i < payload.length; i += CHUNK) {
+          const part = payload.slice(i, i + CHUNK);
+          await tx.run(UPSERT.into(BenchLists).entries(part));
+        }
+                // Optional CAP info message
+        req.info?.(`Upload successful. Upserted ${payload.length} records.`);
+
+        return payload.length;
+    }); */
+
+    return super.init();
+  }
 }
 
-
 module.exports = {
-    skillwisesplitSrv , benchlistSrv
+  skillwisesplitSrv, benchlistSrv
 };

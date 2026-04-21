@@ -100,11 +100,6 @@
           "pattern": ":?query:",
           "name": "BenchListsList",
           "target": "BenchListsList"
-        },
-        {
-          "pattern": "BenchLists({key}):?query:",
-          "name": "BenchListsObjectPage",
-          "target": "BenchListsObjectPage"
         }
       ],
       "targets": {
@@ -116,15 +111,18 @@
             "settings": {
               "contextPath": "/BenchLists",
               "variantManagement": "Page",
-              "navigation": {
-                "BenchLists": {
-                  "detail": {
-                    "route": "BenchListsObjectPage"
-                  }
-                }
-              },
+              "navigation": {},
               "controlConfiguration": {
                 "@com.sap.vocabularies.UI.v1.LineItem": {
+                  "actions": {
+                    "upload": {
+                      "press": "benchlist.employeebenchlist.ext.controller.OnUpload.onUploadPress",
+                      "visible": true,
+                      "enabled": true,
+                      "requiresSelection": false,
+                      "text": "Upload"
+                    }
+                  },
                   "tableSettings": {
                     "type": "ResponsiveTable"
                   }
@@ -132,16 +130,14 @@
               }
             }
           }
-        },
-        "BenchListsObjectPage": {
-          "type": "Component",
-          "id": "BenchListsObjectPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "editableHeaderContent": false,
-              "contextPath": "/BenchLists"
-            }
+        }
+      }
+    },
+    "extends": {
+      "extensions": {
+        "sap.ui.controllerExtensions": {
+          "sap.suite.ui.generic.template.ListReport.view.ListReport": {
+            "controllerName": "benchlist.employeebenchlist.ext.controller.ListReportExt"
           }
         }
       }

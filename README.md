@@ -23,3 +23,14 @@ File or Folder | Purpose
 ## Learn More
 
 Learn more at https://cap.cloud.sap/docs/get-started/.
+
+
+## Deployment steps
+npm i
+mbt build
+cf deploy mta_archives/*.mtar
+
+## Hybrid testing
+cds bind --to benchlist-db
+cds watch --profile hybrid
+

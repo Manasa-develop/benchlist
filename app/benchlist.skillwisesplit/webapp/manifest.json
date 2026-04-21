@@ -121,7 +121,7 @@
                     "EmployeeCountLink": {
                       "header": "Count",
                       "position": {
-                        "anchor": "DataField::primarySkills",
+                        "anchor": "DataField::resourceProposalStatus",
                         "placement": "After"
                       },
                       "template": "benchlist.skillwisesplit.ext.fragment.EmployeeCountLink"
@@ -130,15 +130,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "extends": {
-      "extensions": {
-        "sap.ui.controllerExtensions": {
-          "c": {
-            "controllerName": "benchlist.skillwisesplit.ext.controller.SkillSummaryListExt"
           }
         }
       }
