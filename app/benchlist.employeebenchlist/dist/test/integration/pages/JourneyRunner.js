@@ -1,0 +1,2 @@
+sap.ui.define(["sap/fe/test/JourneyRunner","benchlist/employeebenchlist/test/integration/pages/BenchListsList","benchlist/employeebenchlist/test/integration/pages/BenchListsObjectPage"],function(e,t,s){"use strict";var n=new e({launchUrl:sap.ui.require.toUrl("benchlist/employeebenchlist")+"/test/flpSandbox.html#benchlistemployeebenchlist-tile",pages:{onTheBenchListsList:t,onTheBenchListsObjectPage:s},async:true});return n});
+//# sourceMappingURL=JourneyRunner.js.map

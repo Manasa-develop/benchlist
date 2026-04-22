@@ -1,56 +1,121 @@
 _schema-version: 3.3.0
 ID: benchlist
+description: 'Employee Bench list '
 version: 1.0.0
-description: "Employee Bench list "
+modules:
+- name: benchlist-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: benchlist-db
+  - name: benchlist-auth
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    instances: 1
+  build-parameters:
+    builder: npm-ci
+- name: benchlist-db-deployer
+  type: hdb
+  path: gen/db
+  requires:
+  - name: benchlist-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: benchlist-approuter
+  type: approuter.nodejs
+  path: benchlist-approuter
+  requires:
+  - name: srv-api
+    group: destinations
+    properties:
+     name: srv-api # must be used in xs-app.json as well
+     url: ~{srv-url}
+     forwardAuthToken: true
+  - name: benchlist_html_repo_runtime
+  - name: benchlist-auth
+  parameters:
+    disk-quota: 256M
+    memory: 256M
+
+- name: benchlist-employeebenchlist
+  type: html5
+  path: app/benchlist.employeebenchlist
+  build-parameters:
+    builder: custom
+    commands:
+      - npm ci
+      - npm run build
+    build-result: dist
+    supported-platforms: []
+
+- name: benchlist-skillwisesplit
+  type: html5
+  path: app/benchlist.skillwisesplit
+  build-parameters:
+    builder: custom
+    commands:
+      - npm ci
+      - npm run build
+    build-result: dist
+    supported-platforms: []
+
+- name: benchlist_ui_deployer
+  type: com.sap.application.content
+  path: gen
+  requires:
+  - name: benchlist_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+      - name: benchlist-employeebenchlist
+        artifacts:
+          - "benchlist.employeebenchlist.zip"
+        target-path: resources/
+      - name: benchlist-skillwisesplit
+        artifacts:
+          - "benchlist.skillwisesplit.zip"
+        target-path: resources/
+
+resources:
+- name: benchlist-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+- name: benchlist-auth
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      oauth2-configuration:
+        credential-types:
+        - binding-secret
+        - x509
+      tenant-mode: dedicated
+      xsappname: benchlist-jwt
+    path: ./xs-security.json
+    service: xsuaa
+    service-plan: application
+- name: benchlist_html_repo_runtime
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-plan: app-runtime
+- name: benchlist_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-plan: app-host
 parameters:
   enable-parallel-deployments: true
 build-parameters:
   before-all:
-    - builder: custom
-      commands:
-        - npm ci
-        - npx cds build --production
-modules:
-  - name: benchlist-srv
-    type: nodejs
-    path: gen/srv
-    parameters:
-      instances: 1
-      buildpack: nodejs_buildpack
-    build-parameters:
-      builder: npm-ci
-    provides:
-      - name: srv-api # required by consumers of CAP services (e.g. approuter)
-        properties:
-          srv-url: ${default-url}
-    requires:
-      - name: benchlist-db
-      - name: benchlist-auth
-
-  - name: benchlist-db-deployer
-    type: hdb
-    path: gen/db
-    parameters:
-      buildpack: nodejs_buildpack
-    requires:
-      - name: benchlist-db
-
-resources:
-  - name: benchlist-db
-    type: com.sap.xs.hdi-container
-    parameters:
-      service: hana
-      service-plan: hdi-shared
-  - name: benchlist-auth
-    type: org.cloudfoundry.managed-service
-    parameters:
-      service: xsuaa
-      service-plan: application
-      path: ./xs-security.json
-      config:
-        xsappname: benchlist-jwt
-        tenant-mode: dedicated
-        oauth2-configuration:
-          credential-types:
-            - "binding-secret"
-            - "x509"
+  - builder: custom
+    commands:
+    - npm ci
+    - npx cds build --production

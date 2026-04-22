@@ -1,0 +1,73 @@
+{
+  "welcomeFile": "/employeebenchlist/index.html",
+  "authenticationMethod": "route",
+  "routes": [
+    {
+      "source": "^/service/(.*)$",
+      "target": "/service/$1",
+      "destination": "srv-api",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+
+    {
+      "source": "^/employeebenchlist/index.html(.*)$",
+      "target": "/benchlistemployeebenchlist/index.html$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "source": "^/employeebenchlist/sap-ui-cachebuster-info.json(.*)$",
+      "target": "/benchlistemployeebenchlist/sap-ui-cachebuster-info.json$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "source": "^/employeebenchlist/~(.*)~/(.*)$",
+      "target": "/benchlistemployeebenchlist/$2",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/employeebenchlist/(.*)$",
+      "target": "/benchlistemployeebenchlist/$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+
+    {
+      "source": "^/skillwisesplit/index.html(.*)$",
+      "target": "/benchlistskillwisesplit/index.html$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "source": "^/skillwisesplit/sap-ui-cachebuster-info.json(.*)$",
+      "target": "/benchlistskillwisesplit/sap-ui-cachebuster-info.json$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "source": "^/skillwisesplit/~(.*)~/(.*)$",
+      "target": "/benchlistskillwisesplit/$2",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/skillwisesplit/(.*)$",
+      "target": "/benchlistskillwisesplit/$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/(.*)$",
+      "target": "/$1",
+      "service": "html5-apps-repo-rt",
+      "authenticationType": "xsuaa"
+    }
+  ]
+}

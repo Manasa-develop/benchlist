@@ -1,0 +1,2 @@
+sap.ui.define(["sap/fe/test/JourneyRunner","benchlist/skillwisesplit/test/integration/pages/SkillwiseSplitsList","benchlist/skillwisesplit/test/integration/pages/SkillwiseSplitsObjectPage"],function(i,e,s){"use strict";var t=new i({launchUrl:sap.ui.require.toUrl("benchlist/skillwisesplit")+"/test/flpSandbox.html#benchlistskillwisesplit-tile",pages:{onTheSkillwiseSplitsList:e,onTheSkillwiseSplitsObjectPage:s},async:true});return t});
+//# sourceMappingURL=JourneyRunner.js.map

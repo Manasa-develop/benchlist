@@ -1,0 +1,22 @@
+<core:FragmentDefinition xmlns="sap.m" xmlns:core="sap.ui.core" xmlns:u="sap.ui.unified">
+  <Dialog id="uploadDialog" title="Mass Upload" contentWidth="32rem" draggable="true" resizable="true">
+    <VBox id="_IDGenVBox2" class="sapUiSmallMargin">
+      <Text id="_IDGenText1" text="Choose a file to upload." class="sapUiSmallMarginBottom"/>
+      <u:FileUploader
+        id="fileUploader"
+        width="100%"
+        placeholder="Choose a file..."
+        fileType="csv,xlsx"
+        change="onFileChange"
+        style="Emphasized"/>
+      <Text id="selectedFileText" text="" class="sapUiSmallMarginTop"/>
+    </VBox>
+
+    <beginButton>
+      <Button id="_IDGenButton2" text="Upload" type="Emphasized" press="onConfirmUpload"/>
+    </beginButton>
+    <endButton>
+      <Button id="_IDGenButton3" text="Cancel" press="onCancelUpload"/>
+    </endButton>
+  </Dialog>
+</core:FragmentDefinition>

@@ -1,0 +1,2 @@
+sap.ui.define(["sap/fe/test/ListReport"],function(t){"use strict";var e={actions:{},assertions:{}};return new t({appId:"benchlist.employeebenchlist",componentId:"BenchListsList",contextPath:"/BenchLists"},e)});
+//# sourceMappingURL=BenchListsList.js.map
