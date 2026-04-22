@@ -8,159 +8,311 @@ const SkillwisesplitSrv = require('./code/SkillwiseSplitSrv');
 
 class skillwisesplitSrv extends LCAPApplicationService {
   async init() {
-    
-// Important: ensure base initialization happens first
+
+    // Important: ensure base initialization happens first
     await super.init()
 
     console.log(' SkillwiseSplitSrv loaded')
     //  Now `this.entities` is available
     const { SkillwiseSplits, BenchLists } = this.entities
 
-    this.on('READ', 'SkillwiseSplits', async (req) => {
-
-     const q = req.query;
-      const where = q?.SELECT?.where;
-      const orderBy = q?.SELECT?.orderBy;
-      const limit = q?.SELECT?.limit;
-
-      // --- Detect $count calls (FE often calls /SkillwiseSplits/$count) ---
-      const cols = q?.SELECT?.columns || [];
-      const isCount =
-        cols.length === 1 &&
-        (
-          cols[0].func === 'count' ||
-          cols[0].ref?.[0] === '$count'
-        );
-
-      // --- Base aggregation grouped only by primarySkills ---
-      const baseAgg = SELECT
-        .from(BenchLists)
-        .columns(
-          { ref: ['primarySkills'] },
-          { func: 'count', args: [1], as: 'employeeCount' }
-        )
-        .groupBy('primarySkills');
-
-      // Apply UI filters if present (role/status/etc. are in WHERE)
-      if (where) baseAgg.where(where);
-
-      // If this is a $count request: count number of groups (distinct primarySkills after filters)
-      if (isCount) {
-        const countGroups = SELECT
-          .from(baseAgg) // subquery
-          .columns({ func: 'count', args: [1], as: 'count' });
-
-        const r = await cds.run(countGroups);
-        return r?.[0]?.count ?? 0;
-      }
-
-      // Preserve $orderby if FE sends it (allow sorting by primarySkills or employeeCount)
-      if (orderBy) baseAgg.SELECT.orderBy = orderBy;
-
-      // Preserve paging ($top/$skip)
-      if (limit) baseAgg.SELECT.limit = limit;
-
-      const rows = await cds.run(baseAgg);
-
-      // Because your entity metadata contains role/status fields (for filters),
-      // but we group only by primarySkills, return them as null (or omit).
-      // FE doesn't need them in the row; it only needs them for filtering.
-      return rows.map(r => ({
-        primarySkills: r.primarySkills,
-        employeeCount: r.employeeCount,
-        role: null,
-        benchStatus: null,
-        resourceProposalStatus: null
-      }));
-    });
+    /*   this.on('READ', 'SkillwiseSplits', async (req) => {
+  
+       const q = req.query;
+        const where = q?.SELECT?.where;
+        const orderBy = q?.SELECT?.orderBy;
+        const limit = q?.SELECT?.limit;
+  
+        // --- Detect $count calls (FE often calls /SkillwiseSplits/$count) ---
+        const cols = q?.SELECT?.columns || [];
+        const isCount =
+          cols.length === 1 &&
+          (
+            cols[0].func === 'count' ||
+            cols[0].ref?.[0] === '$count'
+          );
+  
+        // --- Base aggregation grouped only by primarySkills ---
+        const baseAgg = SELECT
+          .from(BenchLists)
+          .columns(
+            { ref: ['primarySkills'] },
+            { func: 'count', args: [1], as: 'employeeCount' }
+          )
+          .groupBy('primarySkills');
+  
+        // Apply UI filters if present (role/status/etc. are in WHERE)
+        if (where) baseAgg.where(where);
+  
+        // If this is a $count request: count number of groups (distinct primarySkills after filters)
+        if (isCount) {
+          const countGroups = SELECT
+            .from(baseAgg) // subquery
+            .columns({ func: 'count', args: [1], as: 'count' });
+  
+          const r = await cds.run(countGroups);
+          return r?.[0]?.count ?? 0;
+        }
+  
+        // Preserve $orderby if FE sends it (allow sorting by primarySkills or employeeCount)
+        if (orderBy) baseAgg.SELECT.orderBy = orderBy;
+  
+        // Preserve paging ($top/$skip)
+        if (limit) baseAgg.SELECT.limit = limit;
+  
+        const rows = await cds.run(baseAgg);
+  
+        // Because your entity metadata contains role/status fields (for filters),
+        // but we group only by primarySkills, return them as null (or omit).
+        // FE doesn't need them in the row; it only needs them for filtering.
+        return rows.map(r => ({
+          primarySkills: r.primarySkills,
+          employeeCount: r.employeeCount,
+          role: null,
+          benchStatus: null,
+          resourceProposalStatus: null
+        }));
+      }); */
 
     return this;
 
-   // return super.init();
+    // return super.init();
   }
 }
 
 const cds = require("@sap/cds");
 const XLSX = require("xlsx");
 
-// csv-parse compatibility import
-let parseCsv;
-try {
-  ({ parse: parseCsv } = require("csv-parse/sync"));
-} catch (e) {
-  ({ parse: parseCsv } = require("csv-parse/lib/sync"));
+const { parse } = require("csv-parse/sync");
+
+function parseCsvToObjects(text) {
+  // remove UTF-8 BOM if present
+  const cleaned = text.replace(/^\uFEFF/, "");
+
+  const records = parse(cleaned, {
+    columns: true,           // first row = headers, returns objects
+    skip_empty_lines: true,
+    trim: true,
+    relax_quotes: true,      // tolerant parser
+    relax_column_count: true // avoids hard failures on odd rows
+    // You can also set delimiter: "," or ";" if needed
+  });
+
+  return records;
 }
+
+function parseCsv(text) {
+  const cleaned = text.replace(/^\uFEFF/, ""); // remove BOM if Excel added it
+
+  return parse(cleaned, {
+    columns: true,            // first row = headers -> returns objects
+    skip_empty_lines: true,
+    trim: true,
+    quote: '"',
+    escape: '"',              // handles "" inside quoted fields
+    relax_quotes: true,
+    relax_column_count: true
+    // delimiter: ","          // if your CSV uses ';', set delimiter: ";"
+  });
+}
+
+// --- Excel parser using SheetJS (first sheet) ---
+function parseExcel(buffer) {
+  // SheetJS can read spreadsheet bytes from Buffer/Uint8Array/ArrayBuffer. 【1-35d0a8】【2-9a834d】
+  const wb = XLSX.read(buffer, { type: "buffer" });
+  const sheetName = wb.SheetNames?.[0];
+  if (!sheetName) throw new Error("Excel contains no sheets");
+
+  const ws = wb.Sheets[sheetName];
+  // defval ensures empty cells don't become undefined
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+  if (!rows.length) throw new Error("Excel sheet is empty");
+  return rows;
+}
+
+/* function normalizeAvailabilityToPercent(v) {
+  // Accepts: 83, "83", "83%", "83 %", 0.83, "0.83", "0.83%", etc.
+  if (v === undefined || v === null || v === "") return null;
+
+  // If SheetJS gives Date or boolean, stringify -> parseFloat will handle poorly, so guard:
+  if (v instanceof Date) return null;
+
+  let s = String(v).trim();
+
+  // remove % and spaces
+  const hadPercent = s.includes("%");
+  s = s.replace(/%/g, "").trim();
+
+  // Convert to number
+  let n = Number(s);
+  if (!Number.isFinite(n)) return null;
+
+  // If value looks like fraction (0..1) from Excel percent formatting, convert to percent
+  // - If original had "%" OR the numeric is <=1, treat as fraction
+  if (hadPercent || (n >= 0 && n <= 1)) {
+    n = n * 100;
+  }
+
+  // round to 2 decimals for Decimal(5,2)
+  n = Math.round(n * 100) / 100;
+
+  // IMPORTANT: for DECIMAL, safest is passing as string
+  return n.toFixed(2); // e.g. "83.33"
+} */
+
+  function normalizeAvailabilityToPercent(v) {
+  if (v === undefined || v === null || v === "") return null;
+
+  // Convert to string and trim
+  let s = String(v).trim();
+
+  // Handle comma decimal separators "83,5%" -> "83.5%"
+  s = s.replace(",", ".");
+
+  // Detect if input had %
+  const hadPercent = s.includes("%");
+  s = s.replace(/%/g, "").trim();
+
+  let n = Number(s);
+  if (!Number.isFinite(n)) return null;
+
+  /**
+   * Decide whether n is already percent (e.g., 83) or fraction (e.g., 0.83 or 1).
+   * - If n is between 0 and 1 (inclusive), it's a fraction -> convert to percent.
+   * - If n > 1, it's already percent -> DO NOT multiply.
+   * This rule works for:
+   *  - raw Excel: 0.83, 1
+   *  - formatted text: "83%", "100%"
+   */
+  if (n >= 0 && n <= 1) {
+    n = n * 100;
+  }
+
+  // Round to 2 decimals for Decimal(5,2)
+  n = Math.round(n * 100) / 100;
+
+  // Safety clamp (optional): avoid 10000 due to weird inputs
+  if (n > 999.99 || n < -999.99) {
+    throw new Error(`Availability out of range for Decimal(5,2): ${n}`);
+  }
+
+  // Return as string for DECIMAL binding safety
+  return n.toFixed(2); // "100.00"
+}
+
+function normalizeAvailabilityToInt(v) {
+  const s = normalizeAvailabilityToPercent(v); // returns "83.33" or null
+  if (s === null) return null;
+  return Math.round(Number(s)); // 83
+}
+
+function toStrOrNull(v) {
+  if (v === undefined || v === null) return null;
+  if (typeof v === "string") return v.trim();
+
+  // Excel dates can come as Date objects
+  if (v instanceof Date) return v.toISOString();
+
+  // numbers/booleans -> string
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+
+  // Any other object (rare) -> stringify safely
+  return String(v);
+}
+
 
 class benchlistSrv extends LCAPApplicationService {
   async init() {
-     console.log("✅ benchlistSrv init loaded. Service:", this.name);
+    console.log("✅ benchlistSrv init loaded. Service:", this.name);
     // Access service entities (projection names as exposed in service CDS)
     const { BenchLists } = this.entities;
 
-    /**
-     * Unbound action handler:
-     * action uploadBenchData(fileName: String, content: LargeBinary) returns Integer;
-     */
     this.on("uploadBenchData", async (req) => {
       console.log("✅ uploadBenchData called");
+
       try {
         const { fileName, content } = req.data || {};
-        if (!content) req.reject(400, "No file content received");
-        if (!fileName) req.reject(400, "No fileName received");
+        if (!content) return req.reject(400, "No file content received");
+        if (!fileName) return req.reject(400, "No fileName received");
 
-        // content is base64 string (no "data:..." prefix)
+        const ext = (fileName.split(".").pop() || "").toLowerCase();
         const buf = Buffer.from(content, "base64");
-        const text = buf.toString("utf8");
 
-        // VERY basic CSV parsing (comma-separated, first row headers)
-        // Replace with your own parsing rules if needed.
-        const lines = text.split(/\r?\n/).filter(Boolean);
-        if (lines.length < 2) req.reject(400, "CSV is empty or missing data rows");
+        let rows;
 
-        const headers = lines[0].split(",").map((h) => h.trim());
-        const rows = lines.slice(1).map((line) => {
-          const cols = line.split(","); // simplistic
-          const obj = {};
-          headers.forEach((h, i) => (obj[h] = (cols[i] || "").trim()));
-          return obj;
-        });
+        if (ext === "csv") {
+          const text = buf.toString("utf8");
+          rows = parseCsv(text);
+        } else if (ext === "xlsx" || ext === "xls") {
+          rows = parseExcel(buf);
+        } else {
+          return req.reject(400, `Unsupported file type: .${ext}. Please upload CSV/XLS/XLSX`);
+        }
 
-        // Map CSV columns -> entity columns
-        // IMPORTANT: adjust mapping to match your BenchLists fields.
+        // Map columns -> entity fields (same as yours)
+        /*    const payload = rows.map((r) => ({
+             dc: r.dc ?? r.Dc ?? r.DC,
+             employeeNumber: r.employeeNumber ?? r.EmployeeNumber ?? r.EMPLOYEENUMBER,
+             name: r.name ?? r.Name ?? r.NAME,
+             costCenter: r.costCenter ?? r.CostCenter ?? r.COSTCENTER,
+             platform: r.platform ?? r.Platform ?? r.PLATFORM,
+             role: r.role ?? r.Role ?? r.ROLE,
+             primarySkills: r.primarySkills ?? r.PrimarySkills ?? r.PRIMARYSKILLS,
+             availability: r.availability ?? r.Availability ?? r.AVAILABILITY,
+             pillarLead: r.pillarLead ?? r.PillarLead ?? r.PILLARLEAD,
+             benchStatus: r.benchStatus ?? r.BenchStatus ?? r.BENCHSTATUS,
+             resourceProposalStatus:
+               r.resourceProposalStatus ?? r.ResourceProposalStatus ?? r.RESOURCEPROPOSALSTATUS,
+             comment: r.comment ?? r.Comment ?? r.COMMENT
+           })).filter(r => r.dc); */
         const payload = rows.map((r) => ({
-        ID: r.ID || cds.utils.uuid(),
-        dc: r.dc ?? r.Dc ?? r.DC,
-        employeeNumber: r.employeeNumber ?? r.EmployeeNumber ?? r.EMPLOYEENUMBER,
-        name: r.name ?? r.Name ?? r.NAME,
-        costCenter: r.costCenter ?? r.CostCenter ?? r.COSTCENTER,
-        platform: r.platform ?? r.Platform ?? r.PLATFORM,
-        role: r.role ?? r.Role ?? r.ROLE,
-        primarySkills: r.primarySkills ?? r.PrimarySkills ?? r.PRIMARYSKILLS,
-        availability: r.availability ?? r.Availability ?? r.AVAILABILITY,
-        pillarLead: r.pillarLead ?? r.PillarLead ?? r.PILLARLEAD,
-        benchStatus: r.benchStatus ?? r.BenchStatus ?? r.BENCHSTATUS,
-        resourceProposalStatus:
-          r.resourceProposalStatus ?? r.ResourceProposalStatus ?? r.RESOURCEPROPOSALSTATUS,
-        comment: r.comment ?? r.Comment ?? r.COMMENT
-        })).filter(r => r.dc); // keep only valid rows
+          dc: toStrOrNull(r.dc ?? r.Dc ?? r.DC),
+          employeeNumber: toStrOrNull(r.employeeNumber ?? r.EmployeeNumber ?? r.EMPLOYEENUMBER),
+          name: toStrOrNull(r.name ?? r.Name ?? r.NAME),
+          costCenter: toStrOrNull(r.costCenter ?? r.CostCenter ?? r.COSTCENTER),
+          platform: toStrOrNull(r.platform ?? r.Platform ?? r.PLATFORM),
+          role: toStrOrNull(r.role ?? r.Role ?? r.ROLE),
+          primarySkills: toStrOrNull(r.primarySkills ?? r.PrimarySkills ?? r.PRIMARYSKILLS),
+          //availability: toStrOrNull(r.availability ?? r.Availability ?? r.AVAILABILITY),
 
-        if (!payload.length) req.reject(400, "No valid rows found (missing keys)");
+          availability: normalizeAvailabilityToInt(
+            r.availability ?? r.Availability ?? r.AVAILABILITY
+          ),
 
-        // UPSERT requires keys present (EmployeeID in this example)
-        await cds.transaction(req).run(
-          UPSERT.into(BenchLists).entries(payload)
-        );
+          pillarLead: toStrOrNull(r.pillarLead ?? r.PillarLead ?? r.PILLARLEAD),
+          benchStatus: toStrOrNull(r.benchStatus ?? r.BenchStatus ?? r.BENCHSTATUS),
+          resourceProposalStatus: toStrOrNull(
+            r.resourceProposalStatus ?? r.ResourceProposalStatus ?? r.RESOURCEPROPOSALSTATUS
+          ),
+          comment: toStrOrNull(r.comment ?? r.Comment ?? r.COMMENT)
+        })).filter(r => r.dc);
+        if (!payload.length) return req.reject(400, "No valid rows found (missing keys)");
 
-        // CAP action primitive return (Integer)
+        /*        await cds.tx(req).run(
+                 UPSERT.into(BenchLists).entries(payload)
+               ); */
+        const tx = cds.tx(req);
+        // 1) Try update by business key (employeeNumber)
+        for (const row of payload) {
+          const affected = await tx.run(
+            UPDATE(BenchLists)
+              .set(row)
+              .where({ employeeNumber: row.employeeNumber })
+          );
+
+          // 2) If nothing updated, insert new row
+          if (affected === 0) {
+            await tx.run(INSERT.into(BenchLists).entries(row));
+          }
+        }
         req.info(`${payload.length} records upserted successfully`);
         return payload.length;
 
       } catch (e) {
-        req.error(500, e.message || String(e));
-        return req.reject(500, "Upload failed: " + (e.message || e));
+        console.error(e);
+        return req.reject(500, "Upload failed: " + (e?.message || String(e)));
       }
     });
-
     return super.init();
   }
 }

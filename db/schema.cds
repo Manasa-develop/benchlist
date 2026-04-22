@@ -1,23 +1,23 @@
 namespace benchlist;
 
 using {
-  cuid,
   managed
 } from '@sap/cds/common';
 
-entity BenchLists : cuid, managed {
+@assert.unique: { employeeNumber: [employeeNumber] }
+entity BenchLists : managed {
+  key employeeNumber         : String(10);
   dc                     : String(20);
-  employeeNumber         : String(10);
   name                   : String(100);
   costCenter             : String(30);
   platform               : String(20);
   role                   : String(50);
   primarySkills          : String(150);
-  availability           : String(4);
+  availability           : Decimal(5, 2);
   pillarLead             : String(100);
   benchStatus            : String(20);
   resourceProposalStatus : String(10);
-  comment                : String(100);
+  comment                : String(200);
 }
 
 entity SkillwiseSplits as

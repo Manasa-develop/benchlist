@@ -51,12 +51,12 @@ annotate service.BenchLists with @(
         {
             $Type: 'UI.DataField',
             Value: benchStatus,
-            Label: 'benchStatus',
+            Label: 'Bench Status',
         },
         {
             $Type: 'UI.DataField',
             Value: resourceProposalStatus,
-            Label: 'resourceProposalStatus',
+            Label: 'Resource Proposal Status',
         },
     ],
 );
